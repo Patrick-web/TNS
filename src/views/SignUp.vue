@@ -8,12 +8,17 @@
       <br />
       <vs-input type="password" v-model="password" placeholder="Password">
         <template #icon>
-          <box-icon name="lock" type="solid"></box-icon>
+          <i class="bx bxs-lock"></i>
         </template>
       </vs-input>
       <br />
       <div class="footer-dialog">
-        <vs-button block @click="signup"> Sign Up </vs-button>
+        <vs-button animation-type="vertical" block @click="signup">
+          Sign Up
+          <template #animate>
+            <i class="bx bxs-user-plus"></i>
+          </template>
+        </vs-button>
         <div class="new"><router-link to="/">Login Instead</router-link></div>
       </div>
     </vs-dialog>
@@ -38,14 +43,17 @@ export default {
   },
   methods: {
     signup() {
+      const loading = this.$vs.loading({ type: "circles" });
       const user = firebase
         .auth()
         .createUserWithEmailAndPassword(this.email, this.password)
         .then((cred) => {
+          loading.close();
           console.log(cred);
           this.$router.replace({ name: "stickys" });
         })
         .catch((err) => {
+          loading.close();
           const noti = this.$vs.notification({
             position: "top-center",
             color: "danger",

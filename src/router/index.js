@@ -10,7 +10,7 @@ Vue.use(VueRouter)
 
 const routes = [
   {
-    path: '/stickys',
+    path: '/',
     name: 'stickys',
     component: stickys
   },
@@ -25,7 +25,7 @@ const routes = [
     component: todo
   },
   {
-    path: '/',
+    path: '/login',
     name: 'login',
     component: Login
   },

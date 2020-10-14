@@ -7,7 +7,7 @@
       </vs-input>
       <vs-input type="password" v-model="password" placeholder="Password">
         <template #icon>
-          <box-icon name="lock" type="solid"></box-icon>
+          <i class="bx bxs-lock"></i>
         </template>
       </vs-input>
       <div class="flex">
@@ -15,7 +15,12 @@
         <a href="#">Forgot Password?</a>
       </div>
       <div class="footer-dialog">
-        <vs-button block @click="signIn"> Login </vs-button>
+        <vs-button animation-type="vertical" block @click="signIn">
+          Login
+          <template #animate>
+            <i class="bx bxs-lock-open"></i>
+          </template>
+        </vs-button>
 
         <div class="new">
           <router-link replace to="/signup">Create New Account</router-link>
@@ -27,8 +32,6 @@
 </template>
 
 <script>
-import "boxicons";
-
 import titleBar from "@/components/titleBar.vue";
 import * as firebase from "firebase/app";
 import "firebase/auth";
@@ -47,14 +50,17 @@ export default {
   },
   methods: {
     signIn() {
+      const loading = this.$vs.loading({ type: "circles" });
       const user = firebase
         .auth()
         .signInWithEmailAndPassword(this.email, this.password)
         .then((cred) => {
+          loading.close();
           console.log(cred);
           this.$router.replace({ name: "stickys" });
         })
         .catch((err) => {
+          loading.close();
           const noti = this.$vs.notification({
             icon: "<box-icon type='solid' name='error'></box-icon>",
             position: "top-center",

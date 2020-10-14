@@ -200,7 +200,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
+  position: fixed;
   height: 60px;
   width: 95%;
   left: 50%;

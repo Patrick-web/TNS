@@ -7,33 +7,51 @@
       <router-view />
     </transition>
     <div class="cover"></div>
-    <div class="navWrapper">
-      <navbar />
-    </div>
+    <navbar />
   </div>
 </template>
 
 <script>
 import titleBar from "@/components/titleBar.vue";
 import navbar from "@/components/navbar.vue";
+import { mapActions } from "vuex";
 export default {
   components: {
     navbar,
     titleBar,
   },
-  methods: {},
+  methods: {
+    ...mapActions(["addStickyFromDB"]),
+  },
   created() {
-    // alert("rendered")
     if (this.$router.currentRoute.path != "/") {
       this.$router.push("/");
     }
     document.body.classList.add("view=Notes");
+  },
+  mounted() {
+    if (window.navigator.onLine) {
+      const loading = this.$vs.loading({ type: "circles" });
+      db.collection("notes")
+        .get()
+        .then((querySnapshot) => {
+          loading.close();
+          querySnapshot.forEach((doc) => {
+            const sticky = doc.data();
+            sticky.firebaseID = doc.id;
+            console.log(sticky);
+            this.addStickyFromDB(sticky);
+          });
+        });
+    }
   },
 };
 </script>
 
 <style>
 @import "./assets/animate.css";
+@import url("https://cdn.jsdelivr.net/npm/boxicons@2.0.5/css/boxicons.min.css");
+@import url("https://unpkg.com/boxicons@2.0.5/css/boxicons.min.css");
 * {
   margin: 0;
   padding: 0;
@@ -46,6 +64,10 @@ body {
   height: 100vh;
   width: 100%;
   overflow: hidden;
+}
+.vs-button__content {
+  font-size: 1.2em !important;
+  font-weight: 500;
 }
 ::-webkit-scrollbar {
   display: none;
@@ -88,7 +110,7 @@ img:hover {
   position: fixed;
   top: 0;
   height: 100vh;
-  background: rgba(64, 0, 70, 0.356);
+  background: rgba(22, 22, 22, 0.356);
   width: 100%;
   transform: scaleY(0);
   transform-origin: bottom;

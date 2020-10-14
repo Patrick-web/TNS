@@ -6,9 +6,11 @@ import { Datetime } from 'vue-datetime'
 import 'vue-datetime/dist/vue-datetime.css'
 import axios from "axios";
 import firebase from "firebase/app"
+import 'firebase/firestore'
 import Vuesax from 'vuesax'
 import 'vuesax/dist/vuesax.css'
-
+import store from './store'
+import 'datejs'
 Vue.prototype.$axios = axios;
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -22,7 +24,9 @@ const firebaseConfig = {
   measurementId: "G-GG6RJKG7WL"
 };
 
-firebase.initializeApp(firebaseConfig)
+const firebaseApp = firebase.initializeApp(firebaseConfig)
+window.db = firebaseApp.firestore()
+console.dir(firebase)
 
 Vue.use(Datetime)
 Vue.use(Vuesax)
@@ -32,5 +36,6 @@ Vue.config.productionTip = false
 
 new Vue({
   router,
+  store,
   render: h => h(App)
 }).$mount('#app')

@@ -1,5 +1,5 @@
 <template>
-  <div v-on:click="showAddArea" id="addBt" class="add-note">
+  <div id="addBt" class="add-note">
     <img class="addImg" src="@/assets/plus.svg" alt="" />
   </div>
 </template>

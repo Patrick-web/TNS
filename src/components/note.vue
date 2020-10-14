@@ -1,154 +1,234 @@
 <template>
   <div class="note">
-    <div class="bar">
-      <p class="info date">{{ note.date }}</p>
-      <p class="info time">{{ note.time }}</p>
+    <div @click="showDialog" class="bar">
+      <div :class="note.color"></div>
     </div>
-    <div class="content">
-      <div class="textareaCover"></div>
-      <p id="previewBox" class="txtArea">{{ note.note }}</p>
-      <p id="noteId">{{ note.id }}</p>
-      <textarea
-        v-model="note.note"
-        v-on:keyup="showSaveIcon($event)"
-        id="actualtxtarea"
-        class="txtArea"
-        name=""
-        cols="30"
-        rows="20"
+    <div @click="showDialog" class="content">
+      <pre id="previewBox" class="txtArea">{{ note.content }}</pre>
+    </div>
+    <div class="center">
+      <vs-dialog
+        width="500px"
+        scroll
+        overflow-hidden
+        prevent-close
+        not-close
+        v-model="showStickyDialog"
       >
-      </textarea>
-      <actionsBar class="actions" v-on:updateNote.stop="$emit(updateNote)" />
-      <div
-        class="saveEditBt"
-        v-on:click="$emit('updateNote')"
-        style="position: absolute; right: 15px; top: 45px"
-      >
-        <img src="@/assets/save.svg" alt="" />
-      </div>
+        <template #header>
+          <ColorPicker
+            v-on:colorPick="changeStickyColor"
+            :color="note.color"
+            :showAllColors="showPicker"
+            :noteID="note.localID"
+          />
+          <!-- <div class="cut"></div> -->
+          <div class="stickyHead">
+            <div class="stickyInfo">
+              <p class="info date">{{ note.formattedDate }}</p>
+              <span style="width: 20px"></span>
+              <p class="info time">{{ note.formattedTime }}</p>
+            </div>
+          </div>
+        </template>
+        <textarea
+          v-model="note.content"
+          @input="updateContent"
+          class="con-content sc"
+        >
+        </textarea>
+
+        <template #footer>
+          <div class="footer-dialog">
+            <vs-button @click="saveChanges" animation-type="vertical" block>
+              Close
+              <template #animate>
+                <i class="bx bx-collapse"></i>
+              </template>
+            </vs-button>
+            <vs-button
+              id="delBt"
+              animation-type="vertical"
+              danger
+              @click="confirmDelete = true"
+              floating
+            >
+              <i class="bx bx-trash"></i>
+              <template #animate> Delete </template>
+            </vs-button>
+          </div>
+        </template>
+      </vs-dialog>
+      <vs-dialog blur v-model="confirmDelete">
+        <h4 style="text-align: center">Continue To Delete this Sticky</h4>
+        <template #footer>
+          <div class="con-footer">
+            <vs-button @click="deleteSticky" block warn> Yes </vs-button>
+            <vs-button @click="confirmDelete = false" block> Cancel </vs-button>
+          </div>
+        </template>
+      </vs-dialog>
     </div>
   </div>
 </template>
 
 <script>
 import actionsBar from "@/components/actionsBar.vue";
+import StickyDialog from "@/components/StickyDialog.vue";
+import ColorPicker from "@/components/ColorPicker.vue";
+import { mapActions } from "vuex";
 
 export default {
   name: "note",
+  data() {
+    return {
+      showStickyDialog: false,
+      showPicker: false,
+      newColor: false,
+      contentIsEdited: false,
+      updateNote: false,
+      confirmDelete: false,
+    };
+  },
   components: {
     actionsBar,
+    StickyDialog,
+    ColorPicker,
   },
-  props: ["note"],
+  props: {
+    note: Object,
+    stickyIndex: Number,
+  },
+  mounted() {
+    console.log(this.stickyIndex);
+  },
   methods: {
-    showSaveIcon(e) {
-      const expanded = e.target.parentElement.parentElement;
-      expanded.querySelector(".saveEditBt").style.transform = "scale(1)";
+    ...mapActions(["removeSticky"]),
+    deleteSticky() {
+      this.removeSticky(this.stickyIndex);
+      window.db
+        .collection("notes")
+        .doc(this.note.firebaseID)
+        .delete()
+        .then(() => {
+          console.log("Document successfully deleted!");
+          const noti = this.$vs.notification({
+            icon: "<i class='bx bx-trash-alt'></i>",
+            position: "top-center",
+            color: "warning",
+            title: "Done",
+            text: "Sticky has been deleted",
+          });
+        })
+        .catch(function (error) {
+          const noti = this.$vs.notification({
+            icon: "< class='bx bxs-error' ></>",
+            position: "top-center",
+            color: "danger",
+            title: "Error",
+            text: err,
+          });
+          console.error("Error removing document: ", error);
+        });
+      this.confirmDelete = false;
+      this.showStickyDialog = false;
     },
-  },
-  created() {
-    setTimeout(() => {
-      const notes = document.querySelectorAll(".note");
-      const textareas = document.querySelectorAll(".txtArea");
-      notes.forEach((note) => {
-        note.querySelector("#previewBox").addEventListener("click", () => {
-          const preview = note.querySelector("#previewBox");
-          const textarea = note.querySelector("#actualtxtarea");
-          textarea.style.display = "block";
-          textarea.value = preview.textContent;
-          textarea.focus();
-          console.log(textarea.value);
-          preview.style.display = "none";
-
-          document.querySelector(".confirm").style.right = "-200px";
-        });
-      });
-      notes.forEach((note) => {
-        note.addEventListener("click", (e) => {
-          note.classList.add("expand");
-          document.body.classList.add("note-expanded");
-        });
-      });
-    }, 0);
+    textAreaAdjust() {
+      const element = document.querySelector(".sc");
+      if (element.scrollHeight < 300) {
+        element.style.height = "1px";
+        element.style.height = 1 + element.scrollHeight + "px";
+      } else {
+        element.style.overflow = "scroll";
+      }
+    },
+    showDialog() {
+      this.showStickyDialog = true;
+      setTimeout(() => {
+        this.textAreaAdjust();
+      }, 0);
+    },
+    saveChanges() {
+      if (this.updateNote) {
+        window.db
+          .collection("notes")
+          .doc(this.note.firebaseID)
+          .set(this.note)
+          .then(function () {
+            console.log("Document successfully updated!");
+          })
+          .catch(function (error) {
+            console.error("Error writing document: ", error);
+          });
+      }
+      this.updateNote = false;
+      this.showStickyDialog = false;
+    },
+    changeStickyColor(color) {
+      if (this.note.color != color) {
+        this.updateNote = true;
+        this.note.color = color;
+      }
+    },
+    updateContent() {
+      this.updateNote = true;
+      this.textAreaAdjust();
+      // this.note.content = "";
+      // this.note.content = document.querySelector(".sc").textContent;
+    },
   },
 };
 </script>
 
 <style lang="scss">
-#noteId {
-  display: none;
-}
-#previewBox {
-  --font-size: 1.2rem;
-  position: absolute;
-  border: none;
-  color: rgb(31, 31, 31);
-  padding: 10px;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
-  font-weight: 300;
-  font-size: var(--font-size);
-  line-height: 1.4rem;
-  overflow-y: scroll;
-}
-.saveEditBt {
-  background: rgba(0, 128, 0, 0.171);
-  width: 45px;
-  height: 45px;
-  /* padding: 10px; */
-  border-radius: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transform: scale(0);
-  transition: 0.2s;
-}
-.saveEditBt img {
-  width: 25px;
-}
 .note {
   background: #f5f8fa;
   margin: 10px;
+  margin-bottom: 20px;
   position: relative;
-  height: 19.5vh;
-  overflow: hidden;
+  max-height: 19.5vh;
   transition: 0.2s ease-in-out;
-  box-shadow: 2px 2px 5px rgb(168, 168, 168);
 }
-
-.bar {
-  --barBgColor: rgb(0, 153, 255);
+#delBt {
+  position: absolute;
+  left: 50%;
+  bottom: 0%;
+  transform: translate(-50%, 130%);
+}
+.note::before {
+  content: "";
+  position: absolute;
+  bottom: 0px;
+  right: 0%;
+  width: 80%;
   height: 20px;
-  background: var(--barBgColor);
-  transition: 0.3s all ease-in;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  overflow: hidden;
-  font-weight: 300;
-  padding: 10px;
-  p {
-    opacity: 0;
-  }
+  background: rgba(0, 0, 0, 0.2);
+  transform-origin: center;
+  transform: skew(5deg) rotate(3deg);
+  z-index: -1;
+  filter: blur(5px);
+  transition: 0.1s ease-in-out;
 }
-.expand {
-  position: fixed;
-  height: 94vh;
-  width: 96vw;
-  margin-left: 8px;
-  box-shadow: none;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-top: 0;
-  z-index: 8;
-  padding-bottom: 50px;
-  margin-bottom: 0px;
-  .bar {
-    height: 40px;
-    p {
-      opacity: 1;
-    }
-  }
-  .textareaCover {
-    display: none;
+.note::after {
+  content: "";
+  position: absolute;
+  bottom: 0px;
+  left: 0%;
+  width: 80%;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  transform-origin: center;
+  transform: skew(-5deg) rotate(-5deg) scale(0.5);
+  z-index: -1;
+  filter: blur(5px);
+  opacity: 0;
+  transition: 0.1s ease-in-out;
+}
+.bar {
+  height: 10px;
+  div {
+    height: 100%;
+    width: 100%;
   }
 }
 .textareaCover {
@@ -157,16 +237,10 @@ export default {
   height: 100%;
   width: 100%;
 }
-.bar .info {
-  color: white;
-  font-family: Arial, Helvetica, sans-serif;
-  margin: 2px;
-  font-size: 1.2rem;
-}
 .note .txtArea {
   --font-size: 1.2rem;
-  width: 100%;
-  height: 82%;
+  width: 95%;
+  max-height: 15vh;
   border: none;
   color: rgb(2, 2, 2);
   padding: 10px;
@@ -175,6 +249,8 @@ export default {
   font-size: var(--font-size);
   line-height: 1.4rem;
   outline: none;
+  overflow: hidden;
+  word-wrap: break-word;
 }
 #actualtxtarea {
   position: absolute;
@@ -185,24 +261,56 @@ export default {
   width: 100%;
   bottom: 0px;
 }
+.sc {
+  outline-color: transparent;
+  background: rgba(230, 230, 250, 0.521);
+  padding: 10px;
+  border-radius: 10px;
+  margin-top: -5px;
+  max-height: 400px;
+  // overflow: scroll;
+  word-wrap: break-word;
+}
+.stickyInfo {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+.vs-dialog-content {
+  background: rgba(0, 0, 0, 0.473) !important;
+}
+
+.cut {
+  height: 60px;
+  width: 60px;
+  position: absolute;
+  top: 20px;
+  border-radius: 20px;
+  background: #7d7b7b;
+  clip-path: circle(50% at 50% 50%);
+  transform: translateY(-50%);
+  z-index: 2;
+  right: -10px;
+}
+
 @media (min-width: 600px) {
-  .expand {
-    position: fixed;
-    height: 94vh;
-    width: 40%;
-    margin-left: 8px;
-    box-shadow: none;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    margin-top: 0;
-    z-index: 8;
-    padding-bottom: 50px;
+  .note {
     margin-bottom: 0px;
-    background: white;
+    width: 300px;
+    min-height: 100px;
+    height: 100px;
+    align-self: flex-start;
+    cursor: pointer;
   }
-  .expand .bar {
-    height: 50px;
+  .note:hover::after {
+    transform: skew(-5deg) rotate(-5deg) scale(1);
+    opacity: 1;
+  }
+  .note:hover::before {
+    transform: skew(5deg) rotate(5deg);
+  }
+  .note .txtArea {
+    max-height: 12.5vh;
   }
 }
 </style>

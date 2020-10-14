@@ -2,38 +2,34 @@
   <div class="page stickyContainer">
     <titleBar title="Sticky Notes" />
 
-    <addSticky v-on:addSticky="addSticky" style="position: fixed" />
     <div class="notesContainer">
-      <div class="sticky" v-bind:key="sticky.id" v-for="sticky in notes">
-        <note v-bind:note="sticky" v-on:updateNote="updateNote" />
-      </div>
+      <note
+        v-bind:key="sticky.id"
+        v-for="(sticky, index) in stickies"
+        v-bind:note="sticky"
+        v-bind:stickyIndex="index"
+        v-on:updateNote="updateNote"
+      />
     </div>
     <confirmDelete v-on:deleteSticky="deleteSticky" />
-    <addBt />
+    <CreateStickyDialog />
   </div>
 </template>
 
 <script>
 import note from "@/components/note.vue";
-import addSticky from "@/components/addSticky.vue";
+import CreateStickyDialog from "@/components/CreateStickyDialog.vue";
 import addBt from "@/components/addBt.vue";
 import confirmDelete from "@/components/confirmDelete.vue";
 import titleBar from "@/components/titleBar.vue";
-
+import { mapActions, mapGetters } from "vuex";
 export default {
   name: "stickys",
+  computed: {
+    ...mapGetters(["stickies"]),
+  },
   methods: {
-    addSticky(newNote) {
-      this.notes.unshift(newNote);
-      let notesStorage = JSON.parse(localStorage.getItem("stickynotes"));
-      if (notesStorage) {
-        notesStorage = [...this.notes];
-        localStorage.setItem("stickynotes", JSON.stringify(notesStorage));
-      } else {
-        const newStickyStorage = [newNote];
-        localStorage.setItem("stickynotes", JSON.stringify(newStickyStorage));
-      }
-    },
+    ...mapActions(["showStickyDialog"]),
     deleteSticky(id) {
       this.notes = this.notes.filter((note) => note.id != id);
       let notesStorage;
@@ -80,10 +76,10 @@ export default {
   },
   components: {
     note,
-    addSticky,
     confirmDelete,
     addBt,
     titleBar,
+    CreateStickyDialog,
   },
 };
 </script>
@@ -125,8 +121,9 @@ export default {
 }
 @media (min-width: 600px) {
   .notesContainer {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 }
 </style>
